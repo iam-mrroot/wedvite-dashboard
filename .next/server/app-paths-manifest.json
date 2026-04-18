@@ -1,5 +1,9 @@
 {
-  "/dashboard/whatsapp/page": "app/dashboard/whatsapp/page.js",
-  "/dashboard/categories/page": "app/dashboard/categories/page.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/api/weddings/[slug]/analytics/route": "app/api/weddings/[slug]/analytics/route.js",
+  "/api/weddings/[slug]/categories/route": "app/api/weddings/[slug]/categories/route.js",
+  "/api/weddings/[slug]/rsvps/route": "app/api/weddings/[slug]/rsvps/route.js",
+  "/api/categories/[id]/route": "app/api/categories/[id]/route.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/categories/page": "app/dashboard/categories/page.js"
 }

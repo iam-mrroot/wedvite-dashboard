@@ -8,9 +8,155 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ─────────────────────────────────────────────
-// Enums
-// ─────────────────────────────────────────────
+model Partner {
+  id                    String      @id @default(uuid())
+  name                  String
+  business_name         String?
+  phone                 String
+  email                 String?
+  type                  PartnerType
+  commission_percentage Float       @default(30)
+  is_active             Boolean     @default(true)
+  created_at            DateTime    @default(now())
+  weddings              Wedding[]
+}
+
+model Wedding {
+  id               String      @id @default(uuid())
+  slug             String      @unique
+  bride_name       String
+  groom_name       String
+  bride_family     String
+  groom_family     String
+  wedding_date     DateTime
+  custom_domain    String?
+  theme            String      @default("elegant-gold")
+  greeting_default String      @default("You're warmly invited to celebrate with us")
+  tier             Tier
+  partner_id       String?
+  is_active        Boolean     @default(true)
+  config_json      Json
+  created_at       DateTime    @default(now())
+  updated_at       DateTime    @updatedAt
+  categories       Category[]
+  events           Event[]
+  guests           Guest[]
+  link_clicks      LinkClick[]
+  rsvps            Rsvp[]
+  partner          Partner?    @relation(fields: [partner_id], references: [id])
+}
+
+model Event {
+  id                    String               @id @default(uuid())
+  wedding_id            String
+  name                  String
+  date                  DateTime
+  start_time            String
+  end_time              String?
+  venue_name            String
+  venue_address         String
+  venue_lat             Float
+  venue_lng             Float
+  venue_map_url         String?
+  sort_order            Int
+  created_at            DateTime             @default(now())
+  wedding               Wedding              @relation(fields: [wedding_id], references: [id], onDelete: Cascade)
+  link_clicks           LinkClick[]
+  rsvp_event_selections RsvpEventSelection[]
+}
+
+model Category {
+  id                        String      @id @default(uuid())
+  wedding_id                String
+  name                      String
+  slug                      String
+  custom_greeting           String?
+  whatsapp_message_template String?
+  created_at                DateTime    @default(now())
+  wedding                   Wedding     @relation(fields: [wedding_id], references: [id], onDelete: Cascade)
+  guests                    Guest[]
+  link_clicks               LinkClick[]
+  rsvps                     Rsvp[]      @relation("RsvpSourceCategory")
+
+  @@unique([wedding_id, slug])
+  @@index([wedding_id])
+  @@index([slug])
+}
+
+model Guest {
+  id          String      @id @default(uuid())
+  wedding_id  String
+  category_id String?
+  name        String
+  phone       String?
+  email       String?
+  slug        String
+  relation    String?
+  side        Side
+  is_vip      Boolean     @default(false)
+  created_at  DateTime    @default(now())
+  category    Category?   @relation(fields: [category_id], references: [id])
+  wedding     Wedding     @relation(fields: [wedding_id], references: [id], onDelete: Cascade)
+  link_clicks LinkClick[]
+  rsvps       Rsvp[]
+
+  @@unique([wedding_id, slug])
+  @@index([wedding_id])
+  @@index([slug])
+}
+
+model Rsvp {
+  id                   String               @id @default(uuid())
+  wedding_id           String
+  guest_id             String?
+  name                 String
+  phone                String?
+  guest_count          Int                  @default(1)
+  dietary_preference   DietaryPreference
+  dietary_note         String?
+  transport_needed     Boolean              @default(false)
+  accommodation_needed Boolean              @default(false)
+  source_type          SourceType
+  source_category_id   String?
+  message              String?
+  created_at           DateTime             @default(now())
+  guest                Guest?               @relation(fields: [guest_id], references: [id])
+  source_category      Category?            @relation("RsvpSourceCategory", fields: [source_category_id], references: [id])
+  wedding              Wedding              @relation(fields: [wedding_id], references: [id], onDelete: Cascade)
+  event_selections     RsvpEventSelection[]
+
+  @@index([wedding_id])
+}
+
+model RsvpEventSelection {
+  id          String  @id @default(uuid())
+  rsvp_id     String
+  event_id    String
+  attending   Boolean
+  guest_count Int
+  event       Event   @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  rsvp        Rsvp    @relation(fields: [rsvp_id], references: [id], onDelete: Cascade)
+}
+
+model LinkClick {
+  id          String    @id @default(uuid())
+  wedding_id  String
+  category_id String?
+  guest_id    String?
+  event_id    String?
+  link_type   LinkType
+  ip_address  String?
+  user_agent  String?
+  device_type String?
+  clicked_at  DateTime  @default(now())
+  category    Category? @relation(fields: [category_id], references: [id])
+  event       Event?    @relation(fields: [event_id], references: [id])
+  guest       Guest?    @relation(fields: [guest_id], references: [id])
+  wedding     Wedding   @relation(fields: [wedding_id], references: [id], onDelete: Cascade)
+
+  @@index([wedding_id])
+  @@index([clicked_at])
+}
 
 enum Tier {
   CLASSIC
@@ -49,194 +195,4 @@ enum PartnerType {
   PLANNER
   EVENT_MANAGER
   OTHER
-}
-
-// ─────────────────────────────────────────────
-// Partner
-// ─────────────────────────────────────────────
-
-model Partner {
-  id                    String   @id @default(uuid())
-  name                  String
-  business_name         String?
-  phone                 String
-  email                 String?
-  type                  PartnerType
-  commission_percentage Float    @default(30)
-  is_active             Boolean  @default(true)
-  created_at            DateTime @default(now())
-
-  weddings Wedding[]
-}
-
-// ─────────────────────────────────────────────
-// Wedding
-// ─────────────────────────────────────────────
-
-model Wedding {
-  id               String   @id @default(uuid())
-  slug             String   @unique
-  bride_name       String
-  groom_name       String
-  bride_family     String
-  groom_family     String
-  wedding_date     DateTime
-  custom_domain    String?
-  theme            String   @default("elegant-gold")
-  greeting_default String   @default("You're warmly invited to celebrate with us")
-  tier             Tier
-  partner_id       String?
-  is_active        Boolean  @default(true)
-  config_json      Json
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt
-
-  partner    Partner?    @relation(fields: [partner_id], references: [id])
-  events     Event[]
-  categories Category[]
-  guests     Guest[]
-  rsvps      Rsvp[]
-  link_clicks LinkClick[]
-}
-
-// ─────────────────────────────────────────────
-// Event
-// ─────────────────────────────────────────────
-
-model Event {
-  id            String   @id @default(uuid())
-  wedding_id    String
-  name          String
-  date          DateTime
-  start_time    String
-  end_time      String?
-  venue_name    String
-  venue_address String
-  venue_lat     Float
-  venue_lng     Float
-  venue_map_url String?
-  sort_order    Int
-  created_at    DateTime @default(now())
-
-  wedding             Wedding              @relation(fields: [wedding_id], references: [id], onDelete: Cascade)
-  rsvp_event_selections RsvpEventSelection[]
-  link_clicks         LinkClick[]
-}
-
-// ─────────────────────────────────────────────
-// Category
-// ─────────────────────────────────────────────
-
-model Category {
-  id                        String   @id @default(uuid())
-  wedding_id                String
-  name                      String
-  slug                      String
-  custom_greeting           String?
-  whatsapp_message_template String?
-  created_at                DateTime @default(now())
-
-  wedding     Wedding     @relation(fields: [wedding_id], references: [id], onDelete: Cascade)
-  guests      Guest[]
-  rsvps       Rsvp[]      @relation("RsvpSourceCategory")
-  link_clicks LinkClick[]
-
-  @@unique([wedding_id, slug])
-  @@index([wedding_id])
-  @@index([slug])
-}
-
-// ─────────────────────────────────────────────
-// Guest
-// ─────────────────────────────────────────────
-
-model Guest {
-  id          String   @id @default(uuid())
-  wedding_id  String
-  category_id String?
-  name        String
-  phone       String?
-  email       String?
-  slug        String
-  relation    String?
-  side        Side
-  is_vip      Boolean  @default(false)
-  created_at  DateTime @default(now())
-
-  wedding     Wedding     @relation(fields: [wedding_id], references: [id], onDelete: Cascade)
-  category    Category?   @relation(fields: [category_id], references: [id], onDelete: SetNull)
-  rsvps       Rsvp[]
-  link_clicks LinkClick[]
-
-  @@unique([wedding_id, slug])
-  @@index([wedding_id])
-  @@index([slug])
-}
-
-// ─────────────────────────────────────────────
-// Rsvp
-// ─────────────────────────────────────────────
-
-model Rsvp {
-  id                     String            @id @default(uuid())
-  wedding_id             String
-  guest_id               String?
-  name                   String
-  phone                  String?
-  guest_count            Int               @default(1)
-  dietary_preference     DietaryPreference
-  dietary_note           String?
-  transport_needed       Boolean           @default(false)
-  accommodation_needed   Boolean           @default(false)
-  source_type            SourceType
-  source_category_id     String?
-  message                String?
-  created_at             DateTime          @default(now())
-
-  wedding         Wedding              @relation(fields: [wedding_id], references: [id], onDelete: Cascade)
-  guest           Guest?               @relation(fields: [guest_id], references: [id], onDelete: SetNull)
-  source_category Category?            @relation("RsvpSourceCategory", fields: [source_category_id], references: [id], onDelete: SetNull)
-  event_selections RsvpEventSelection[]
-
-  @@index([wedding_id])
-}
-
-// ─────────────────────────────────────────────
-// RsvpEventSelection
-// ─────────────────────────────────────────────
-
-model RsvpEventSelection {
-  id          String  @id @default(uuid())
-  rsvp_id     String
-  event_id    String
-  attending   Boolean
-  guest_count Int
-
-  rsvp  Rsvp  @relation(fields: [rsvp_id], references: [id], onDelete: Cascade)
-  event Event @relation(fields: [event_id], references: [id], onDelete: Cascade)
-}
-
-// ─────────────────────────────────────────────
-// LinkClick
-// ─────────────────────────────────────────────
-
-model LinkClick {
-  id          String   @id @default(uuid())
-  wedding_id  String
-  category_id String?
-  guest_id    String?
-  event_id    String?
-  link_type   LinkType
-  ip_address  String?
-  user_agent  String?
-  device_type String?
-  clicked_at  DateTime @default(now())
-
-  wedding  Wedding   @relation(fields: [wedding_id], references: [id], onDelete: Cascade)
-  category Category? @relation(fields: [category_id], references: [id], onDelete: SetNull)
-  guest    Guest?    @relation(fields: [guest_id], references: [id], onDelete: SetNull)
-  event    Event?    @relation(fields: [event_id], references: [id], onDelete: SetNull)
-
-  @@index([wedding_id])
-  @@index([clicked_at])
 }
